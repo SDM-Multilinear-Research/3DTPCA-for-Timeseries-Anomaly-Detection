@@ -1,6 +1,6 @@
 import sys
-sys.path.insert(0, '/home/jcates/repos/multi_linear_research/jackson/Libraries')
-from AnomalyDetection import _3DTPCA_AnomalyDetection, LSTMAutoEncoder_AnomalyDetection, LTAR_AnomalyDetection, get_roc_curve_values
+sys.path.insert(0, '../')
+from AnomalyDetection import _3DTPCA_AnomalyDetection, LSTMAutoEncoder_AnomalyDetection, PCA_AnomalyDetection, get_roc_curve_values
 
 from keras.layers import LSTM
 from keras.layers import Dense
@@ -11,9 +11,15 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+from time import time
+
+import pickle
+
 N = 5000
 l, m = 50, 50
-data = np.loadtxt("data/boundingMNIST3&6Anomaly1WithLeave.txt").reshape((N,l,m))
+data = np.zeros((N,l,m))
+for i in range(N):
+    data[i] = np.loadtxt(f"data/MovingMNIST/frame{i}.txt")
 
 p = 10
 N = len(data)
@@ -31,8 +37,8 @@ def denoise(fold):
     return fold
 
 print("Fitting 3DTPCA..")
-_3dtpca = _3DTPCA_AnomalyDetection(data, N_train, N_test, p, economy_mode=True, debug=False)
-_3dtpca.fit(0.90, post_process=denoise)
+_3dtpca = _3DTPCA_AnomalyDetection(data, N_train, N_test, p, economy_mode=True, debug=True)
+_3dtpca.fit(0.90, fast_size=100, post_process=denoise)
 
 print("Fitting LSTM Autoencoder...")
 lstm = LSTMAutoEncoder_AnomalyDetection(data, N_train, N_test, p, [
@@ -47,41 +53,47 @@ lstm = LSTMAutoEncoder_AnomalyDetection(data, N_train, N_test, p, [
 ])
 lstm.fit(epochs=5, post_process=denoise)
 
-print("Fitting LTAR...")
-ltar = LTAR_AnomalyDetection(data, N_train, N_test)
-ltar.fit(p=5, post_process=denoise)
+print("Fitting PCA...")
+pca = PCA_AnomalyDetection(data, N_train, N_test)
+pca.fit(25)
 
-print("Generating ROC Curves...")
-tprs_3dtpca, fprs_3dtpca, auc_3dtpca = get_roc_curve_values(_3dtpca, actual)
-tprs_lstm, fprs_lstm, auc_lstm = get_roc_curve_values(lstm, actual)
-tprs_ltar, fprs_ltar, auc_ltar = get_roc_curve_values(ltar, actual)
-plt.plot(np.arange(0,1.1,0.1),np.arange(0,1.1,0.1), "r--")
-plt.plot(fprs_3dtpca,tprs_3dtpca)
-plt.plot(fprs_lstm,tprs_lstm)
-plt.plot(fprs_ltar,tprs_ltar)
-plt.title("ROC Curve for Moving MNIST")
-plt.ylabel("True Positive Rate")
-plt.xlabel("False Positive Rate")
-plt.legend(["Baseline", 
-    f"3DTPCA : AUC = {np.round(auc_3dtpca,4)}",
-    f"LSTM AutoEncoder : AUC = {np.round(auc_lstm,4)}",
-    f"LTAR : AUC = {np.round(auc_ltar,4)}"
-])
-plt.savefig("MovingMNIST_ROC.png")
-plt.close()
+print("Saving Models...")
+with open("results/MovingMNIST_3dtpca.pkl", "wb") as f:
+    pickle.dump(_3dtpca, f)
+with open("results/MovingMNIST_lstm.pkl", "wb") as f:
+    pickle.dump(lstm, f)
+with open("results/MovingMNIST_pca.pkl", "wb") as f:
+    pickle.dump(pca, f)
+with open("results/MovingMNIST_actual.pkl", "wb") as f:
+    pickle.dump(actual, f)
 
-print("Generating Error Plots...")
-norms = []
-for i in range(N_train, N):
-    norms.append(np.linalg.norm(data[i]))
-fig, axs = plt.subplots(4, 1, figsize=(14,7))
-axs[0].plot(norms)
-axs[1].plot(_3dtpca.test_err)
-axs[2].plot(lstm.test_err)
-axs[3].plot(ltar.test_err)
-axs[0].set_title("Norm of Moving MNIST")
-axs[1].set_title("Error for 3DTPCA")
-axs[2].set_title("Error for LSTM")
-axs[3].set_title("Error for LTAR")
-plt.savefig("MovingMNIST_ERR.png")
-plt.close()
+print("Testing Speed")
+_3dtpca_times = [] 
+lstm_times = [] 
+pca_times = [] 
+for i in range(20):
+
+    print("Running trial", i)
+
+    start = time()
+    _3dtpca.fit(0.90, fast_size=100, post_process=denoise)
+    end = time()
+    _3dtpca_times.append(end-start)
+
+    start = time()
+    lstm.fit(epochs=5, post_process=denoise)
+    end = time()
+    lstm_times.append(end-start)
+
+    start = time()
+    pca.fit(25)
+    end = time()
+    pca_times.append(end-start)
+
+times_df = pd.DataFrame()
+times_df["3DTPCA"] = _3dtpca_times
+times_df["LSTM"] = lstm_times
+times_df["PCA"] = pca_times
+print(times_df)
+print(times_df.describe())
+times_df.to_csv("results/MovingMNIST_times.csv", index=False)

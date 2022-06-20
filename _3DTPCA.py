@@ -18,12 +18,22 @@ class _3DTPCA:
             k += 1
         return k
 
-    def _3DTPCA(self, A, i, j, k, energy_ratio):
+    def _3DTPCA(self, A, i, j, k, energy_ratio, fast_size):
 
         # Compute the SVD
         self.SVD = []
         self.U = []
         keep_order = [i, j]
+
+        # Checks if we are doing the fast t-SVD
+        if fast_size is not None:
+            if self.debug:
+                print("Completing Fast t-SVD")
+            if fast_size < 0:
+                raise ValueError("Invalid Fast Size. Must be greater than 0.")
+            trans = np.fft.fft(A, axis=3) # Do the FFT down the samples
+            A = trans[:,:,:,:fast_size] # Only keep the low frequency information
+            A = np.fft.ifft(A, axis=3) # Inverse transform
 
         if self.debug:
             print("Completing Mode 1")
@@ -139,7 +149,7 @@ class _3DTPCA:
         B2 = np.fft.ifft(B1,axis=1)
         return B2.real
 
-    def fit(self, A, i=None, j=None, k=None, energy_ratio=None):
+    def fit(self, A, i=None, j=None, k=None, energy_ratio=None, fast_size=None):
 
         (p, l, m, n_p) = A.shape # This tensor is p x l x m x n_p
 
@@ -154,7 +164,7 @@ class _3DTPCA:
             k = m
 
         # Does PCA
-        self._3DTPCA(A, i, j, k, energy_ratio)
+        self._3DTPCA(A, i, j, k, energy_ratio, fast_size)
 
     def transform(self, A):
         
