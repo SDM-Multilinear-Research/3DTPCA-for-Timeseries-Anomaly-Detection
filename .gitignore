@@ -1,1 +1,3 @@
 Experiments/plot.py
+Experiments/results/*.pkl
+Experiments/results/*.csv

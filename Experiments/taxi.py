@@ -64,33 +64,33 @@ with open("results/taxi_pca.pkl", "wb") as f:
 with open("results/taxi_actual.pkl", "wb") as f:
     pickle.dump(actual, f)
 
-print("Testing Speed")
-_3dtpca_times = [] 
-lstm_times = [] 
-pca_times = [] 
-for i in range(20):
+# print("Testing Speed")
+# _3dtpca_times = [] 
+# lstm_times = [] 
+# pca_times = [] 
+# for i in range(20):
 
-    print("Running trial", i)
+#     print("Running trial", i)
 
-    start = time()
-    _3dtpca.fit(0.90)
-    end = time()
-    _3dtpca_times.append(end-start)
+#     start = time()
+#     _3dtpca.fit(0.90)
+#     end = time()
+#     _3dtpca_times.append(end-start)
 
-    start = time()
-    lstm.fit(epochs=20)
-    end = time()
-    lstm_times.append(end-start)
+#     start = time()
+#     lstm.fit(epochs=20)
+#     end = time()
+#     lstm_times.append(end-start)
 
-    start = time()
-    pca.fit(50)
-    end = time()
-    pca_times.append(end-start)
+#     start = time()
+#     pca.fit(50)
+#     end = time()
+#     pca_times.append(end-start)
 
-times_df = pd.DataFrame()
-times_df["3DTPCA"] = _3dtpca_times
-times_df["LSTM"] = lstm_times
-times_df["PCA"] = pca_times
-print(times_df)
-print(times_df.describe())
-times_df.to_csv("results/taxi_times.csv", index=False)
+# times_df = pd.DataFrame()
+# times_df["3DTPCA"] = _3dtpca_times
+# times_df["LSTM"] = lstm_times
+# times_df["PCA"] = pca_times
+# print(times_df)
+# print(times_df.describe())
+# times_df.to_csv("results/taxi_times.csv", index=False)
