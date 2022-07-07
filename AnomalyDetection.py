@@ -50,6 +50,7 @@ class LSTMAutoEncoder_AnomalyDetection:
         return err_arr
 
     def fit(self, epochs, post_process = None):
+
         self.model.fit(self.train_fold, self.train_fold, epochs=epochs)
         self.train_recon = self.model.predict(self.train_fold)
         self.test_recon = self.model.predict(self.test_fold)
@@ -97,6 +98,7 @@ class PCA_AnomalyDetection:
         return train_fold, test_fold
 
     def fit(self, num_components, post_process = None):
+
         self.model = PCA(n_components=num_components)
         self.model.fit(self.train_fold)
         self.train_recon = self.model.inverse_transform(self.model.transform(self.train_fold))
@@ -155,6 +157,7 @@ class _3DTPCA_AnomalyDetection:
         return train_fold, test_fold
 
     def fit(self, energy_ratio, fast_size=None, post_process = None):
+
         self.model.fit(self.train_fold, energy_ratio=energy_ratio, fast_size=fast_size)
         self.train_recon = self.model.inverse_transform(self.model.transform(self.train_fold))
         self.test_recon = self.model.inverse_transform(self.model.transform(self.test_fold))
